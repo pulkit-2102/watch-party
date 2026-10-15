@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WatchParty Studio — Real-Time Synced Video & Discovery</title>
+  <link rel="stylesheet" href="/static/css/styles.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍿</text></svg>">
+  <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+<body>
+
+  <!-- Top Studio Navigation Bar -->
+  <header class="app-header">
+    <div class="brand-section">
+      <div class="brand-logo-badge">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+      </div>
+      <div class="brand-meta">
+        <span class="brand-name">WatchParty</span>
+        <span class="brand-tag">Studio</span>
+      </div>
+
+      <div class="header-divider"></div>
+
+      <!-- Room Code Pill & Share -->
+      <div class="room-badge-group">
+        <span class="room-dot"></span>
+        <span class="room-code-tag" id="header-room-code">NEON-77</span>
+        <button class="btn-pill-action" id="btn-copy-invite" title="Copy Invite Link">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+          Share
+        </button>
+      </div>
+
+      <!-- Host Crown Badge -->
+      <div class="host-status-badge" id="host-badge-indicator">
+        👑 Host
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Participants Cluster -->
+      <div class="participants-cluster">
+        <div class="avatar-stack" id="avatar-stack-container"></div>
+        <span class="participant-count-text" id="participant-count-tag">1 online</span>
+      </div>
+
+      <!-- Live Latency / RTT Pill -->
+      <div class="latency-pill" id="header-latency-pill" title="Network Round Trip Time">
+        <span class="latency-dot"></span>
+        <span id="header-latency-val">0ms</span>
+      </div>
+
+      <!-- User Profile -->
+      <button class="btn-header-profile" id="btn-change-username" title="Edit your display name">
+        <span>👤</span>
+        <span id="header-username-label">Profile</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Grid Layout -->
+  <main class="app-container" id="app-container">
+    <!-- Cinema Stage: Video Player, Ambient Ambilight, Reactions -->
+    <section class="stage-section">
+      <div class="player-stage-container">
+        <!-- Ambient Ambilight Glow Backdrop -->
+        <div class="ambient-glow-backdrop" id="ambient-glow-backdrop"></div>
+
+        <div class="player-wrapper paused" id="player-wrapper">
+          <video id="video-element" playsinline preload="auto"></video>
+          
+          <!-- YouTube IFrame Player Container -->
+          <div id="youtube-player-container">
+            <div id="youtube-player"></div>
+          </div>
+          
+          <!-- Danmaku Flying Comments Layer -->
+          <div class="danmaku-container" id="danmaku-container"></div>
+
+          <!-- Emoji Reaction Canvas -->
+          <canvas id="reaction-canvas"></canvas>
+
+          <!-- Center Big Play Button Overlay -->
+          <div class="center-play-overlay" id="center-play-overlay">
+            <div class="btn-giant-play" id="btn-giant-play" title="Click to Play">
+              <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            </div>
+            <span class="giant-play-hint" id="giant-play-hint">Click anywhere to play together</span>
+          </div>
+
+          <!-- Floating Sync Drift Status Indicator -->
+          <div class="sync-status-indicator synced" id="video-sync-badge">
+            <span style="width:6px;height:6px;border-radius:50%;background:var(--accent-emerald);box-shadow:0 0 6px var(--accent-emerald)"></span>
+            IN SYNC (0ms)
+          </div>
+
+          <!-- Standard Streaming Video Controls Bar -->
+          <div class="video-controls-overlay">
+            <!-- Timeline Scrubber -->
+            <div class="progress-bar-container" id="progress-bar-container">
+              <div class="progress-buffer-bar" id="progress-buffer-bar"></div>
+              <div class="progress-played-bar" id="progress-played-bar"></div>
+              <div class="progress-scrubber-handle" id="progress-scrubber-handle"></div>
+            </div>
+
+            <div class="controls-row">
+              <div class="controls-left">
+                <!-- Play/Pause -->
+                <button class="ctrl-btn" id="btn-play-pause" title="Play/Pause (Space)">
+                  <svg id="icon-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                  <svg id="icon-pause" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                </button>
+
+                <!-- Skip -10s -->
+                <button class="ctrl-btn" id="btn-skip-backward" title="Skip backward 10s">
+                  <svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
+                </button>
+
+                <!-- Skip +10s -->
+                <button class="ctrl-btn" id="btn-skip-forward" title="Skip forward 10s">
+                  <svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+                </button>
+
+                <!-- Volume & Mute -->
+                <div class="volume-wrapper">
+                  <button class="ctrl-btn" id="btn-mute" title="Mute/Unmute">
+                    <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg>
+                  </button>
+                  <input type="range" class="volume-slider" id="volume-slider" min="0" max="1" step="0.05" value="1" />
+                </div>
+
+                <!-- Live Time Display -->
+                <div class="time-display" id="time-display">00:00 / 00:00</div>
+              </div>
+
+              <div class="controls-right">
+                <!-- Danmaku Comments Toggle -->
+                <button class="ctrl-btn active" id="btn-toggle-danmaku" title="Toggle Bullet Comments">
+                  <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 10H6v-2h12v2zm0-3H6V7h12v2z"/></svg>
+                </button>
+
+                <!-- Speed Selector -->
+                <button class="speed-badge-btn" id="btn-speed-toggle" title="Playback Speed">1.0x</button>
+
+                <!-- Picture in Picture -->
+                <button class="ctrl-btn" id="btn-pip" title="Picture in Picture">
+                  <svg viewBox="0 0 24 24"><path d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>
+                </button>
+
+                <!-- Theater Mode -->
+                <button class="ctrl-btn" id="btn-theater" title="Theater Mode">
+                  <svg viewBox="0 0 24 24"><path d="M19 6H5c-1.1 0-2 .9-2 2v8c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 10H5V8h14v8z"/></svg>
+                </button>
+
+                <!-- Fullscreen -->
+                <button class="ctrl-btn" id="btn-fullscreen" title="Fullscreen">
+                  <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage Metadata Strip -->
+      <div class="stage-meta-strip">
+        <div class="movie-headline">
+          <h1 id="movie-title-header">Big Buck Bunny (HD)</h1>
+          <div class="movie-meta-tags">
+            <span class="meta-pill highlight">4K UHD</span>
+            <span class="meta-pill">Lossless 5.1</span>
+            <span class="meta-pill">NTP Frame-Synced</span>
+            <span class="meta-pill">Standard Open License</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Reaction & Danmaku Dock -->
+      <div class="reaction-dock">
+        <div class="reaction-pill-cluster">
+          <button class="reaction-pill emoji-btn" data-emoji="❤️" title="Love">❤️</button>
+          <button class="reaction-pill emoji-btn" data-emoji="🔥" title="Fire">🔥</button>
+          <button class="reaction-pill emoji-btn" data-emoji="👏" title="Applause">👏</button>
+          <button class="reaction-pill emoji-btn" data-emoji="😂" title="Laugh">😂</button>
+          <button class="reaction-pill emoji-btn" data-emoji="🍿" title="Popcorn">🍿</button>
+          <button class="reaction-pill emoji-btn" data-emoji="😱" title="Shock">😱</button>
+          <button class="reaction-pill emoji-btn" data-emoji="🚀" title="Rocket">🚀</button>
+        </div>
+
+        <div class="danmaku-dock-input">
+          <input type="text" class="danmaku-input-field" id="danmaku-input" placeholder="Type a bullet comment to fly across the screen..." maxlength="80" />
+          <button class="btn-dock-send" id="btn-send-danmaku">Send ↵</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Side Control Deck: Chat, Catalog, Queue, Polls, Settings, Telemetry -->
+    <aside class="side-drawer">
+      <nav class="drawer-tabs-header">
+        <button class="tab-btn active" data-tab="chat">
+          <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+          Chat
+        </button>
+        <button class="tab-btn" data-tab="discovery">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+          Catalog
+        </button>
+        <button class="tab-btn" data-tab="queue">
+          <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>
+          Queue
+        </button>
+        <button class="tab-btn" data-tab="polls">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+          Polls
+        </button>
+        <button class="tab-btn" data-tab="settings">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+          Room
+        </button>
+        <button class="tab-btn" data-tab="telemetry">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.49 2 2 6.49 2 12s4.49 10 10 10 10-4.49 10-10S17.51 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3-8c0 1.66-1.34 3-3 3s-3-1.34-3-3 1.34-3 3-3 3 1.34 3 3z"/></svg>
+          Stats
+        </button>
+      </nav>
+
+      <div class="drawer-content">
+        <!-- 1. Live Chat Panel -->
+        <div class="tab-panel active" id="tab-chat">
+          <div class="chat-messages-container" id="chat-messages-container"></div>
+          <div class="chat-input-area">
+            <input type="text" class="chat-input-box" id="chat-input-box" placeholder="Write a message in party chat..." maxlength="300" />
+            <button class="btn-sm-primary" id="btn-send-chat" style="padding: 7px 14px;">Send</button>
+          </div>
+        </div>
+
+        <!-- 2. Movie Catalog / Discovery Panel -->
+        <div class="tab-panel" id="tab-discovery">
+          <div class="catalog-search-bar">
+            <input type="text" class="search-input" id="catalog-search-input" placeholder="Search movies, genres, cast..." />
+          </div>
+
+          <div class="category-chips-row" id="category-chips-row">
+            <button class="cat-chip active" data-category="All">All</button>
+            <button class="cat-chip" data-category="Animation & Fantasy">Animation</button>
+            <button class="cat-chip" data-category="Sci-Fi & Cyberpunk">Sci-Fi</button>
+            <button class="cat-chip" data-category="Nature & Documentaries">Nature</button>
+            <button class="cat-chip" data-category="Action & Adrenaline">Action</button>
+          </div>
+
+          <div class="catalog-cards-grid" id="catalog-cards-grid"></div>
+        </div>
+
+        <!-- 3. Playlist / Queue Panel -->
+        <div class="tab-panel" id="tab-queue">
+          <div class="queue-header-actions">
+            <span style="font-size: 0.82rem; font-weight: 700; color: #fff;">Up Next Queue</span>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-sm-outline" id="btn-add-custom-stream" title="Add MP4/Stream Link">+ Custom Link</button>
+              <button class="btn-sm-primary" id="btn-play-next-queue">▶ Play Next</button>
+            </div>
+          </div>
+          <div class="playlist-list" id="playlist-list-container"></div>
+        </div>
+
+        <!-- 4. Group Polls Panel -->
+        <div class="tab-panel" id="tab-polls">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <span style="font-size: 0.82rem; font-weight: 700; color: #fff;">Live Group Polls</span>
+            <button class="btn-sm-primary" id="btn-open-create-poll">+ New Poll</button>
+          </div>
+          <div id="active-poll-container"></div>
+        </div>
+
+        <!-- 5. Room Settings & Host Controls -->
+        <div class="tab-panel" id="tab-settings">
+          <div class="settings-section-title">Host Controls & Access Mode</div>
+          <div class="settings-card">
+            <div class="setting-toggle-row">
+              <div>
+                <div style="font-size: 0.85rem; font-weight: 600; color: #fff;">Host-Only Mode</div>
+                <div style="font-size: 0.72rem; color: var(--text-tertiary);">Only the room host can play, pause, seek, or change movie</div>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="host-lock-switch" />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div style="margin-top: 10px; border-top: 1px solid var(--border-subtle); padding-top: 10px;">
+              <label style="font-size: 0.72rem; color: var(--text-tertiary); display: block; margin-bottom: 6px;">Transfer Host Privileges:</label>
+              <div style="display: flex; gap: 8px;">
+                <select id="select-transfer-host" style="flex: 1; background: #0A0E17; border: 1px solid var(--border-light); color: #fff; padding: 6px 10px; border-radius: var(--radius-xs); font-size: 0.8rem;">
+                  <option value="">Select a participant...</option>
+                </select>
+                <button class="btn-sm-primary" id="btn-confirm-transfer-host">Transfer</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="settings-section-title">Connected Members</div>
+          <div class="settings-card" id="settings-participants-list"></div>
+        </div>
+
+        <!-- 6. Diagnostics HUD -->
+        <div class="tab-panel" id="tab-telemetry">
+          <div class="settings-section-title">Telemetry & Clock Drift</div>
+          <div class="telemetry-grid">
+            <div class="telemetry-metric-box">
+              <span class="metric-label">Network RTT</span>
+              <span class="metric-value" id="metric-rtt">0 ms</span>
+            </div>
+            <div class="telemetry-metric-box">
+              <span class="metric-label">Clock Offset</span>
+              <span class="metric-value" id="metric-offset">0 ms</span>
+            </div>
+            <div class="telemetry-metric-box">
+              <span class="metric-label">Playback Drift</span>
+              <span class="metric-value" id="metric-drift">0 ms</span>
+            </div>
+            <div class="telemetry-metric-box">
+              <span class="metric-label">Control Latency (P95)</span>
+              <span class="metric-value" id="metric-p95">0 ms</span>
+            </div>
+            <div class="telemetry-metric-box">
+              <span class="metric-label">Slew Rate Adjustments</span>
+              <span class="metric-value" id="metric-slew-count">0</span>
+            </div>
+            <div class="telemetry-metric-box">
+              <span class="metric-label">Hard Resync Seeks</span>
+              <span class="metric-value" id="metric-seek-count">0</span>
+            </div>
+          </div>
+
+          <div class="settings-section-title">Live Drift Meter (-500ms to +500ms)</div>
+          <div class="drift-meter-bar-container">
+            <div class="drift-meter-center"></div>
+            <div class="drift-meter-fill" id="drift-meter-fill"></div>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.68rem; color: var(--text-tertiary); font-family: monospace;">
+            <span>Lagging (-500ms)</span>
+            <span>0ms</span>
+            <span>Leading (+500ms)</span>
+          </div>
+
+          <div class="settings-section-title" style="margin-top: 18px;">Network Simulation Mode</div>
+          <div class="settings-card">
+            <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 8px;">
+              Inject synthetic packet delays to test NTP compensation and auto-drift recovery in real time.
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+              <span style="font-size: 0.78rem; font-weight: 600; color: #fff;">Simulated Jitter:</span>
+              <span id="sim-latency-val" style="font-family: monospace; color: var(--accent-amber); font-weight: 700;">+0ms</span>
+            </div>
+            <input type="range" id="sim-latency-slider" min="0" max="600" step="50" value="0" style="width: 100%;" />
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- Create Poll Modal -->
+  <div class="modal-overlay" id="modal-create-poll">
+    <div class="modal-box">
+      <div class="modal-title">Create Group Poll</div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <label style="font-size: 0.72rem; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Poll Question:</label>
+          <input type="text" id="poll-input-question" class="search-input" style="width: 100%;" placeholder="e.g. What should we watch next?" />
+        </div>
+        <div>
+          <label style="font-size: 0.72rem; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Options (one per line):</label>
+          <textarea id="poll-input-options" class="search-input" style="width: 100%; height: 80px; font-family: inherit;" placeholder="Sintel&#10;Tears of Steel&#10;Oceans: The Living Deep"></textarea>
+        </div>
+        <div>
+          <label style="font-size: 0.72rem; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Voting Duration:</label>
+          <select id="poll-select-duration" class="search-input" style="width: 100%;">
+            <option value="30">30 Seconds</option>
+            <option value="60" selected>60 Seconds</option>
+            <option value="120">2 Minutes</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-sm-outline" id="btn-close-poll-modal">Cancel</button>
+        <button class="btn-sm-primary" id="btn-submit-new-poll">Start Poll</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Video / YouTube Stream Modal -->
+  <div class="modal-overlay" id="modal-custom-link">
+    <div class="modal-box">
+      <div class="modal-title">Play Custom Video or YouTube Link</div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <label style="font-size: 0.72rem; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Video Link / YouTube URL:</label>
+          <input type="text" id="custom-link-url" class="search-input" style="width: 100%;" placeholder="e.g. https://www.youtube.com/watch?v=... or direct .mp4 URL" />
+        </div>
+        <div>
+          <label style="font-size: 0.72rem; color: var(--text-tertiary); display: block; margin-bottom: 4px;">Video Title (optional):</label>
+          <input type="text" id="custom-link-title" class="search-input" style="width: 100%;" placeholder="e.g. Rick Astley - Never Gonna Give You Up" />
+        </div>
+
+        <!-- Live Detected YouTube Preview Card -->
+        <div id="custom-link-preview" style="display: none;">
+          <div class="yt-preview-card">
+            <img class="yt-preview-thumb" id="yt-preview-img" src="" alt="Thumbnail" />
+            <div class="yt-preview-info">
+              <span class="yt-badge" id="preview-type-badge">▶ YouTube</span>
+              <span style="font-size: 0.8rem; font-weight: 600; color: #fff;" id="preview-title-text">YouTube Video</span>
+              <span style="font-size: 0.68rem; color: var(--text-tertiary); font-family: monospace;" id="preview-id-text">ID: ...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-sm-outline" id="btn-close-custom-modal">Cancel</button>
+        <button class="btn-sm-outline" id="btn-add-to-queue-action" style="border-color: var(--primary); color: #fff;">+ Add to Queue</button>
+        <button class="btn-sm-primary" id="btn-play-in-room-action">▶ Play in Room Now</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
